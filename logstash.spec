@@ -1,10 +1,9 @@
 # TODO
 # - daemon user
-# - logrotate
 Summary:	logstash is a tool for managing events and logs
 Name:		logstash
 Version:	1.1.9
-Release:	0.3
+Release:	0.4
 License:	Apache v2.0
 Group:		Daemons
 Source0:	http://logstash.objects.dreamhost.com/release/%{name}-%{version}-monolithic.jar
@@ -12,6 +11,7 @@ Source0:	http://logstash.objects.dreamhost.com/release/%{name}-%{version}-monoli
 Source1:	%{name}-agent.init
 Source2:	%{name}-agent.sysconfig
 Source3:	%{name}-agent.conf
+Source4:	%{name}.logrotate
 URL:		http://www.logstash.net/
 BuildRequires:	rpmbuild(macros) >= 1.228
 Requires(post,preun):	/sbin/chkconfig
@@ -33,11 +33,13 @@ for searching and drilling into all of your logs.
 
 %install
 rm -rf $RPM_BUILD_ROOT
-install -d $RPM_BUILD_ROOT{%{_sysconfdir}/%{name}/patterns,%{_datadir}/%{name},/var/{lib,log,run}/logstash}
+install -d $RPM_BUILD_ROOT{%{_sysconfdir}/%{name}/patterns,/etc/{rc.d/init.d,sysconfig,logrotate.d}} \
+	$RPM_BUILD_ROOT{%{_datadir}/%{name},/var/{lib,log,run}/logstash}
 cp -p %{SOURCE0} $RPM_BUILD_ROOT%{_datadir}/%{name}/logstash-monolithic.jar
-install -Dp %{SOURCE1} $RPM_BUILD_ROOT/etc/rc.d/init.d/logstash-agent
-install -Dp %{SOURCE2} $RPM_BUILD_ROOT/etc/sysconfig/logstash-agent
+install -p %{SOURCE1} $RPM_BUILD_ROOT/etc/rc.d/init.d/logstash-agent
+cp -p %{SOURCE2} $RPM_BUILD_ROOT/etc/sysconfig/logstash-agent
 cp -p %{SOURCE3} $RPM_BUILD_ROOT%{_sysconfdir}/%{name}/agent.conf
+cp -p %{SOURCE4} $RPM_BUILD_ROOT/etc/logrotate.d/logstash
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -58,6 +60,7 @@ fi
 %dir %attr(750,logstash,logstash) %{_sysconfdir}/%{name}/patterns
 %config(noreplace) %verify(not md5 mtime size) %attr(640,logstash,logstash)  %{_sysconfdir}/%{name}/agent.conf
 %config(noreplace) %verify(not md5 mtime size) %attr(640,root,root) /etc/sysconfig/logstash-agent
+%config(noreplace) %verify(not md5 mtime size) %attr(640,root,root) /etc/logrotate.d/logstash
 %attr(754,root,root) /etc/rc.d/init.d/logstash-agent
 %dir %{_datadir}/%{name}
 %{_datadir}/%{name}/%{name}-monolithic.jar
