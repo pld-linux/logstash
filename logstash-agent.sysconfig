@@ -1,0 +1,14 @@
+# Customized settings for logstash agent
+
+#USER=logstash
+#JARFILE=/usr/share/logstash/logstash-monolitic.jar
+#CONFIG=/etc/logstash/$SERVICE.conf
+#PATTERNS=/etc/logstash/patterns
+#GROKFILE=$PATTERNS/grok-patterns
+#PLUGINS=/etc/logstash/plugins
+#LOGDIR=/var/log/logstash
+#LOGFILE=$LOGDIR/$SERVICE.log
+#JAVA_MEM_MIN="256M"
+#JAVA_MEM_MAX="256M"
+#JAVA_OPTS=""
+#ARGS=""

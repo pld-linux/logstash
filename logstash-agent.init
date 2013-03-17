@@ -1,0 +1,125 @@
+#!/bin/sh
+#
+# logstash-agent	Starts logstash services
+#
+# chkconfig:	2345 80 20
+#
+# description:	Logstash services
+#
+# processname:	logstash-agent
+# config:
+# pidfile:		/var/run/logstash/agent.pid
+
+# Source function library
+. /etc/rc.d/init.d/functions
+
+# Get network config
+. /etc/sysconfig/network
+
+# Check that networking is up.
+if is_yes "${NETWORKING}"; then
+	if [ ! -f /var/lock/subsys/network -a "$1" != stop -a "$1" != status ]; then
+		msg_network_down "logstash agent"
+		exit 1
+	fi
+else
+	exit 0
+fi
+
+# Set defaults
+SERVICE=agent
+USER=logstash
+GROUP=logstash
+JARFILE=/usr/share/logstash/logstash-monolithic.jar
+CONFIG=/etc/logstash/$SERVICE.conf
+PIDDIR=/var/run/logstash
+PIDFILE=$PIDDIR/$SERVICE.pid
+LOGDIR=/var/log/logstash
+LOGFILE=$LOGDIR/$SERVICE.log
+JAVA_MEM_MIN="128M"
+JAVA_MEM_MAX="256M"
+START_STOP_OPTS=""
+ARGS=""
+TRIES=5
+
+# Get service config - may override defaults
+[ -f /etc/sysconfig/logstash-agent ] && . /etc/sysconfig/logstash-agent
+
+JAVA_OPTS="-Xmx$JAVA_MEM_MAX -Xms$JAVA_MEM_MIN $JAVA_OPTS"
+
+start() {
+	# Check if the service is already running?
+	if [ -f /var/lock/subsys/logstash-agent ]; then
+		msg_already_running "logstash agent"
+		return
+	fi
+
+	msg_starting "logstash agent"
+
+	DAEMON=$(which java)
+	DAEMON_OPTS="$JAVA_OPTS -jar $JARFILE $SERVICE -f $CONFIG -l $LOGFILE $ARGS"
+
+	$DAEMON $DAEMON_OPTS &
+	RETVAL=$?
+	pid=$!
+	if [ $RETVAL -eq 0 ]; then
+		ok
+		echo $pid > $PIDFILE
+		touch /var/lock/subsys/logstash-agent
+	else
+		fail
+	fi
+}
+
+stop() {
+	if [ ! -f /var/lock/subsys/logstash-agent ]; then
+		msg_not_running "logstash agent"
+		return
+	fi
+
+	# Stop daemons.
+	msg_stopping "logstash agent"
+	killproc --pidfile $PIDFILE java -TERM
+	rm -f /var/lock/subsys/logstash-agent
+}
+
+condrestart() {
+	if [ ! -f /var/lock/subsys/logstash-agent ]; then
+		msg_not_running "logstash agent"
+		RETVAL=$1
+		return
+	fi
+
+	stop
+	start
+}
+
+RETVAL=0
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart)
+	stop
+	start
+	;;
+  try-restart)
+	condrestart 0
+	;;
+  force-reload)
+	condrestart 7
+	;;
+  status)
+	status --pidfile $PIDFILE logstash-agent java
+	RETVAL=$?
+	;;
+  *)
+	msg_usage "$0 {start|stop|restart|try-restart|reload|force-reload|status}"
+	exit 3
+esac
+
+exit $RETVAL
